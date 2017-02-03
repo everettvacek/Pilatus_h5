@@ -31,10 +31,10 @@ def collect_tiff_meta(dir):
 	for line in scan_line:
 		#create sub-dictionary for each scanline
 		important_meta = {'Filename': [], 'Pixel_size': [], 'Exposure_time': [], 'Exposure_period': [],
-					'Count_cutoff': [], 'Threshold_setting:': [], 'Image_path:': [],
-					'Retrigger_mode:': [], 'Wavelength': [], 'Detector_distance': [],
-					'Detector_Voffset': [], 'Beam_xy': [], 'Flux': [], 'Start_angle': [],
-					'Angle_increment': []}
+						'Count_cutoff': [], 'Threshold_setting:': [], 'Image_path:': [],
+						'Retrigger_mode:': [], 'Wavelength': [], 'Detector_distance': [],
+						'Detector_Voffset': [], 'Beam_xy': [], 'Flux': [], 'Start_angle': [],
+						'Angle_increment': []}
 		for filename in os.listdir(dir):
 			if filename.endswith(".tif") and filename.startswith(line,7):
 				name = os.path.splitext(filename)[0]
