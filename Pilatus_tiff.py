@@ -1,10 +1,11 @@
-"""Read filename information for all tiffs in a directory"""
+"""Collects all data and metadata from Pilatus tiff output and puts them into organized dictionaries"""
 
 import os
 import tifffile as tf
 import h5py
 
-#__all__ = [ 'Pilatus_to_hdf5' ]
+__all__ = [ 'collect_tiff_meta',
+			'collect_tiff_data' ]
 
 class cd:
     """Context manager for changing the current working directory"""
