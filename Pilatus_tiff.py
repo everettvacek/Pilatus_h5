@@ -4,8 +4,7 @@ import os
 import tifffile as tf
 import h5py
 
-__all__ = [ 'collect_tiff_meta',
-			'collect_tiff_data' ]
+__all__ = [ 'collect_tiff_meta', 'collect_tiff_data' ]
 
 class cd:
     """Context manager for changing the current working directory"""
