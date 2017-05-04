@@ -1,9 +1,9 @@
 import h5py
 import numpy as np
-from Pilatus_h5 import *
+from Pilatus_tiff import *
 import datetime
 
-path = 'C:/users/everett/research/hdf5/fly009'
+path = input('path: ')
 scan_meta = collect_tiff_meta(path)
 scan_data = collect_tiff_data(path)
 
