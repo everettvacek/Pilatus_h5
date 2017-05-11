@@ -7,7 +7,7 @@ path = input('path: ')
 scan_meta = collect_tiff_meta(path)
 scan_data = collect_tiff_data(path)
 
-f = h5py.File('Ptycho.cxi','w')
+f = h5py.File('Ptycho_ref.cxi','w')
 f.create_dataset('cxi_version', data = 150)
 
 num_images = 100
@@ -22,6 +22,7 @@ geometry_1 = sample_1.create_group('geometry_1')
 beam_xy = geometry_1.create_dataset('beam_xy', data = scan_meta['001']['Beam_xy'][0])
 
 image_1 = entry_1.create_group('image_1')
+
 #data = image_1.create_dataset('data')
 process_1 = image_1.create_group('process_1')
 date = process_1.create_dataset('date', data = datetime.datetime.now().isoformat())
@@ -59,14 +60,20 @@ count_cutoff = detector_1.create_dataset('count_cutoff', data = scan_meta['001']
 gain_setting = detector_1.create_dataset('gain_setting', data = scan_meta['001']['Gain_setting:'][0])
 v_offset = detector_1.create_dataset('v_offset', data = scan_meta['001']['Detector_Voffset'][0])
 
+#image data is stored here
+
+length = len(scan_data)
+data = detector_1.create_dataset('data', (0,619,487),  maxshape=(None,619,487), chunks = (1,619,487)) #Image stack with size tiffxlayers
+data.attrs['Axes'] = "translation:y:x" 
+data_1['data'] = h5py.SoftLink('/entry_1/instrument_1/detector_1/data')
+scan_lines = detector_1.create_group('scan_lines')
 
 for line in scan_data:
-	data = detector_1.create_dataset('data_' + line, data = scan_data[line]) #Image stack with size tiffxlayers
-	data.attrs['Axes'] = "translation:y:x" 
-	data_1['data_' + line] = h5py.SoftLink('/entry_1/instrument_1/detector_1/data_' + line)
-
-	
-
+	data.resize(len(data)+len(scan_data[line]), axis=0)
+	data[len(data)-len(scan_data[line]):len(data),:,:] = scan_data[line]  #Image stack with size tiffxlayers
+	line_ref = data.regionref[len(data)-len(scan_data[line]):len(data)-1,]
+	line_ref_data = data[line_ref]
+	line_data = scan_lines.create_dataset('data_' +line, data = line_ref_data)
 
 log_1 = detector_1.create_group('log')
 Retrigger_mode = log_1.create_dataset('retrigger_mode', data = int(scan_meta['001']['Retrigger_mode:'][0]))
