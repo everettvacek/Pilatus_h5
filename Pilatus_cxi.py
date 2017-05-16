@@ -67,6 +67,7 @@ length = len(scan_data)
 data = detector_1.create_dataset('data', (0,619,487),  maxshape=(None,619,487), chunks = (1,619,487)) #Image stack with size tiffxlayers
 data.attrs['Axes'] = "translation:y:x" 
 data_1['data'] = h5py.SoftLink('/entry_1/instrument_1/detector_1/data')
+data_1['scan_line_ref'] = h5py.SoftLink('/entry_1/instrument_1/detector_1/data')
 #scan_lines = detector_1.create_group('scan_lines')
 
 ref_dtype =  h5py.special_dtype(ref=h5py.RegionReference) #define region ref datatype
@@ -82,7 +83,7 @@ for line in scan_data:
 	data.resize(len(data)+len(scan_data[line]), axis=0) #create space for scanline data
 	scan_line_ref.resize( len(scan_line_ref)+1 , axis = 0) #resize by 1 for each scanline
 
-	#close and open file because of bug in resize
+	#close and open file because of bug in .resize
 	f.close()
 	f = h5py.File(filename, 'r+')
 	data = f['/entry_1/instrument_1/detector_1/data']
