@@ -26,7 +26,7 @@ def collect_tiff_meta(dir):
 
 		#create dictionary
 		scan_meta = {}
-		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif')])))
+		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif') and filename.startswith('fly')])))
 
 		#search directory for tif files and collect metadata
 		for line in scan_line:
@@ -68,7 +68,7 @@ def collect_tiff_data(dir):
 	import numpy as np
 	with cd(dir):
 
-		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif')])))
+		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif') and filename.startswith('fly')])))
 		scan_data = {}
 		for line in scan_line:
 			data_array = []

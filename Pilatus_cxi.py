@@ -7,7 +7,8 @@ path = input('path: ')
 scan_meta = collect_tiff_meta(path)
 scan_data = collect_tiff_data(path)
 
-f = h5py.File('Ptycho_ref.cxi','w')
+filename = 'Ptycho_ref.cxi'
+f = h5py.File(filename ,'w')
 f.create_dataset('cxi_version', data = 150)
 
 num_images = 100
@@ -66,16 +67,30 @@ length = len(scan_data)
 data = detector_1.create_dataset('data', (0,619,487),  maxshape=(None,619,487), chunks = (1,619,487)) #Image stack with size tiffxlayers
 data.attrs['Axes'] = "translation:y:x" 
 data_1['data'] = h5py.SoftLink('/entry_1/instrument_1/detector_1/data')
-scan_lines = detector_1.create_group('scan_lines')
+#scan_lines = detector_1.create_group('scan_lines')
 
-for line in scan_data:
-	data.resize(len(data)+len(scan_data[line]), axis=0)
-	data[len(data)-len(scan_data[line]):len(data),:,:] = scan_data[line]  #Image stack with size tiffxlayers
-	line_ref = data.regionref[len(data)-len(scan_data[line]):len(data)-1,]
-	line_ref_data = data[line_ref]
-	line_data = scan_lines.create_dataset('data_' +line, data = line_ref_data)
+ref_dtype =  h5py.special_dtype(ref=h5py.RegionReference) #define region ref datatype
+scan_line_ref = detector_1.create_dataset('scan_line_ref', (0,), dtype = ref_dtype,  maxshape = (None,))
 
 log_1 = detector_1.create_group('log')
 Retrigger_mode = log_1.create_dataset('retrigger_mode', data = int(scan_meta['001']['Retrigger_mode:'][0]))
 exposure_time = log_1.create_dataset('exposure_time', data = scan_meta['001']['Exposure_time'][0])
 exposure_period = log_1.create_dataset('exposure_period', data = scan_meta['001']['Exposure_period'][0])
+
+
+for line in scan_data:
+	data.resize(len(data)+len(scan_data[line]), axis=0) #create space for scanline data
+	scan_line_ref.resize( len(scan_line_ref)+1 , axis = 0) #resize by 1 for each scanline
+
+	#close and open file because of bug in resize
+	f.close()
+	f = h5py.File(filename, 'r+')
+	data = f['/entry_1/instrument_1/detector_1/data']
+	scan_line_ref = f['/entry_1/instrument_1/detector_1/scan_line_ref']
+	
+	
+	data[len(data)-len(scan_data[line]):len(data),:,:] = scan_data[line]  #Image stack with size tiffxlayers
+	line_ref = data.regionref[len(data)-len(scan_data[line]):len(data)-1,] #Reference the scan line region
+	scan_line_ref[len(scan_line_ref)-1] = line_ref #store the line reference in the dataset
+
+f.close()
