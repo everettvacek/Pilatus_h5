@@ -90,7 +90,7 @@ for line in scan_data:
 	
 	
 	data[len(data)-len(scan_data[line]):len(data),:,:] = scan_data[line]  #Image stack with size tiffxlayers
-	line_ref = data.regionref[len(data)-len(scan_data[line]):len(data)-1,] #Reference the scan line region
+	line_ref = data.regionref[len(data)-len(scan_data[line]):len(data),] #Reference the scan line region
 	scan_line_ref[len(scan_line_ref)-1] = line_ref #store the line reference in the dataset
 
 f.close()
