@@ -7,7 +7,7 @@ path = input('path: ')
 scan_meta = collect_tiff_meta(path)
 scan_data = collect_tiff_data(path)
 
-filename = 'Ptycho_ref.cxi'
+filename = scan_meta['001']['Filename'][0][0:6]+'.cxi'
 f = h5py.File(filename ,'w')
 f.create_dataset('cxi_version', data = 150)
 
