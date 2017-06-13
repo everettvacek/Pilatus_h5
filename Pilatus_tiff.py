@@ -95,26 +95,35 @@ def create_cxi(dir = None):
 	with cd(dir):
 		
 		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif') and filename.startswith('fly')])))
-
-
+		
+		filename = scan_meta[line]['Filename'][0][0:6] + '.cxi'
+                master = h5py.File(filename ,'w')
+		master.create_dataset('cxi_version', data = 150) 
+		
+		index = 0	
 		for line in scan_line:
-			
+			index = index + 1
 			scan_meta = collect_tiff_meta(line)
 			scan_data = collect_tiff_data(line)
 			filename = scan_meta[line]['Filename'][0][0:10]+'.cxi'
 			f = h5py.File(filename ,'w')
 			f.create_dataset('cxi_version', data = 150)
-
+			
 			num_images = len(scan_meta[line]['Filename']) #??????????????????????????????????????????????????????????????????????????????????????????????????
 			tiff = np.ndarray(shape = (num_images,619,487), dtype = float)
 			translations = np.ndarray(shape = (num_images,3), dtype = float)
 
 			#create all folders and sub folders 
 			entry_1 = f.create_group('entry_1')
+			entry_m = master.create_group('entry_' + index)
 
 			sample_1 = entry_1.create_group('sample_1')
 			geometry_1 = sample_1.create_group('geometry_1')
 			beam_xy = geometry_1.create_dataset('beam_xy', data = scan_meta[line]['Beam_xy'])
+
+			sample_m = entry_1.create_group('sample_' + index)
+			geometry_m = sample_1.create_group('geometry_' + index)
+			beam_xy_m = geometry_1.create_dataset('beam_xy_' + index, data = scan_meta[line]['Beam_xy'])
 
 			image_1 = entry_1.create_group('image_1')
 
