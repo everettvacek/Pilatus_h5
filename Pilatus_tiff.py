@@ -93,7 +93,7 @@ def create_cxi():
 		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif') and filename.startswith('fly')])))
 
 
-		for line in scan_lines:
+		for line in scan_line:
 
 			scan_meta = collect_tiff_meta(line)
 			scan_data = collect_tiff_data(line)
