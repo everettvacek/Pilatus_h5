@@ -40,7 +40,7 @@ def collect_tiff_meta(line):
 	'Angle_increment': [], 'Polarization' : [], 'Alpha' : [], 'Kappa' : [], 'Phi' : [], 'Phi_increment' : [], 'Chi' : [],
 	'Chi_increment' : [], 'Oscillation_axis' : [], 'N_oscillations' : []
 	}
-	for filename in os.listdir(dir):
+	for filename in os.listdir(os.getcwd()):
 		if filename.endswith(".tif") and filename.startswith(line,7):
 			name = os.path.splitext(filename)[0]
 			
@@ -73,7 +73,7 @@ def collect_tiff_data(line):
 #	for line in scan_line:
 	data_array = []
 	#scan_line_arrays = {}
-	for filename in os.listdir(dir):
+	for filename in os.listdir(os.getcwd()):
 		if filename.endswith(".tif") and filename.startswith(line, 7):
 			name = os.path.splitext(filename)[0]
 			data_array.append(tf.imread(filename))
