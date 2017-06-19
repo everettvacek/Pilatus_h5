@@ -4,7 +4,7 @@ import os
 import tifffile as tf
 import h5py
 
-__all__ = [ 'collect_tiff_meta', 'collect_tiff_data' ]
+__all__ = [ 'collect_tiff_meta', 'collect_tiff_data', 'create_cxi', 'create_master' ]
 
 class cd:
     """Context manager for changing the current working directory"""
@@ -32,7 +32,7 @@ def collect_tiff_meta(line):
 #	for line in scan_line:
 	#create sub-dictionary for each scanline
 	important_meta = {
-	'Filename': [], 'Pixel_size': [], 'Silicon sensor, thickness' : [], 'Exposure_time': [], 'Exposure_period': [],
+	'Filename': [], 'Date_Time':[], 'Pixel_size': [], 'Silicon sensor, thickness' : [], 'Exposure_time': [], 'Exposure_period': [],
 	'Tau' : [], 'Count_cutoff': [], 'Threshold_setting:': [], 'Gain_setting:' : [], 'N_excluded_pixels' : [], 
 	'Excluded_pixels:' : [], 'Flat_field:' : [], 'Trim_file:' : [], 'Image_path:': [], 'Ratecorr_lut_directory:' : [], 
 	'Retrigger_mode:': [], 'Wavelength': [], 'Energy_range': [], 'Detector_distance': [], 'Detector_Voffset': [],
@@ -53,8 +53,9 @@ def collect_tiff_meta(line):
 			
 			#store data in dictionary
 			important_meta['Filename'].append(name)
+			important_meta['Date_Time'].append(data[30:34] + '-' + data[35:37] + '-' + data[38:40] + 'T' + data[41:49]+'-0600')
 			for key in important_meta:
-				if key == 'Filename':
+				if key == 'Filename' or key == 'Date_Time':
 					pass
 				else:
 					start = data.find(key)+len(key)+1
@@ -83,23 +84,68 @@ def collect_tiff_data(line):
 	scan_data[line] = np.asarray(data_array, order = 'C')
 	return scan_data
 
+
+def create_master(dir = None, overwrite = False):
+	
+	
+	if dir == None:
+		dir = os.getcwd() +'/fly009'
+	else:
+		dir = input('path: ')
+
+	mode = 'a'
+	if overwrite:
+		mode = 'w'
+
+	with cd(dir):
+		line_file = list(sorted(set([filename for filename in os.listdir(dir) if filename.endswith('.cxi') and filename.startswith('fly')])))
+		m = h5py.File('master.cxi', mode)
+
+		entry_num = '/entry_1'
+		e = True
+		i = 0
+		#Create new entry
+		while e and not overwrite:
+			i = i+1
+			entry_num = '/entry_' + str(i)
+			e = entry_num in m
+
+		detector_m = m.create_group(entry_num + '/instrument_1/detector_1')
+		data_m = m.create_group(entry_num + '/data_1')
+		entry_m = m[entry_num]
+
+		for i in range(len(line_file)):
+#			f = h5py.File(line_file[i], 'r')
+#			data = f['/entry_1/instrument_1/detector_1/data']
+#			data_m = m.create_group
+#			m[detector_m.name + u'/' + unicode(line_file[7:10])] = h5py.ExternalLink(line_file[i], data.name)
+			line = line_file[i][7:10]
+			detector_data = detector_m.create_group('data_' + line)
+			m[detector_data.name + u'/' +  unicode(line)] = h5py.ExternalLink(line_file[i], '/entry_1/instrument_1/detector_1/data')
+			m[detector_data.name + u'/metadata'] =  h5py.ExternalLink(line_file[i], '/entry_1/image_1/process_1/note_1/metadata_'+ line)
+			m[data_m.name + u'/' + unicode(line)] = h5py.SoftLink(detector_data.name + u'/' +  unicode(line))
+
+		
+		m.close()		 
+
+
 def create_cxi(dir = None):
 
 	import datetime
 	import numpy as np
 	
 	if dir == None:
-		dir = '/raid/home/everett/Pilatus_h5/fly009/'
+		dir = os.getcwd() +'/fly009'
 	else:
 		dir = input('path: ')
 	with cd(dir):
 		
 		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif') and filename.startswith('fly')])))
-		
+		'''
 		filename = scan_meta[line]['Filename'][0][0:6] + '.cxi'
                 master = h5py.File(filename ,'w')
 		master.create_dataset('cxi_version', data = 150) 
-		
+		'''		
 		index = 0	
 		for line in scan_line:
 			index = index + 1
@@ -115,21 +161,21 @@ def create_cxi(dir = None):
 
 			#create all folders and sub folders 
 			entry_1 = f.create_group('entry_1')
-			entry_m = master.create_group('entry_' + index)
-
+#			entry_m = master.create_group('entry_' + index)
+			entry_1.create_dataset('start_time', data = scan_meta[line]['Date_Time'][0])
 			sample_1 = entry_1.create_group('sample_1')
 			geometry_1 = sample_1.create_group('geometry_1')
 			beam_xy = geometry_1.create_dataset('beam_xy', data = scan_meta[line]['Beam_xy'])
 
-			sample_m = entry_1.create_group('sample_' + index)
-			geometry_m = sample_1.create_group('geometry_' + index)
-			beam_xy_m = geometry_1.create_dataset('beam_xy_' + index, data = scan_meta[line]['Beam_xy'])
+#			sample_m = entry_1.create_group('sample_' + index)
+#			geometry_m = sample_1.create_group('geometry_' + index)
+#			beam_xy_m = geometry_1.create_dataset('beam_xy_' + index, data = scan_meta[line]['Beam_xy'])
 
 			image_1 = entry_1.create_group('image_1')
 
 			#data = image_1.create_dataset('data')
 			process_1 = image_1.create_group('process_1')
-			date = process_1.create_dataset('date', data = datetime.datetime.now().isoformat())
+			date = process_1.create_dataset('date', data = scan_meta[line]['Date_Time'][0])
 			note_1 = process_1.create_group('note_1')
 #			for line in scan_meta:
 			folder = note_1.create_group('metadata_' + line)
