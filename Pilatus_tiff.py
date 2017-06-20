@@ -1,10 +1,17 @@
-"""Collects all data and metadata from Pilatus tiff output and puts them into organized dictionaries"""
+"""
+Collects all data and metadata from Pilatus tiff output and puts them into organized dictionaries
+All files must be in the format fly###_###_#####.tif where the first set of  numbers represent the dataset number (001-999)
+the second set of numbers represent the scanline (001-999), and the third set of numbers represents the image number (00000-99999)
+i.e. flydataset_line_image.tif
+
+
+"""
 
 import os
 import tifffile as tf
 import h5py
 
-__all__ = [ 'collect_tiff_meta', 'collect_tiff_data', 'create_master', 'create_cxi']
+__all__ = [ 'collect_tif_meta', 'collect_tif_data', 'create_master', 'create_cxi']
 
 class cd:
     """Context manager for changing the current working directory"""
@@ -20,8 +27,8 @@ class cd:
         os.chdir(self.savedPath)
 
 
-def collect_tiff_meta(line):
-	"""Collects tiff metadata and loads it into a python dictionary"""
+def collect_tif_meta(line):
+	"""Collects tif metadata and loads it into a python dictionary"""
 
 	#create dictionary
 	scan_meta = {}
@@ -60,8 +67,8 @@ def collect_tiff_meta(line):
 	scan_meta[line] = important_meta
 	return scan_meta
 
-def collect_tiff_data(line):
-	"""Collects tiff data and loads it into python dictionary"""
+def collect_tif_data(line):
+	"""Collects tif data and loads it into python dictionary"""
 	import numpy as np
 
 	scan_data = {}
@@ -129,6 +136,7 @@ def create_master(dir, overwrite = False):
 
 
 def create_cxi(dir):
+	'''Creates .cxi file for each scanline in a directory'''
 	import numpy as np
 	
 	with cd(dir):
@@ -140,9 +148,9 @@ def create_cxi(dir):
 		for line in scan_line:
 			index = index + 1
 
-			# Collect tiff data and metadata
-			scan_meta = collect_tiff_meta(line)
-			scan_data = collect_tiff_data(line)
+			# Collect tif data and metadata
+			scan_meta = collect_tif_meta(line)
+			scan_data = collect_tif_data(line)
 
 			#Create .cxi file 
 			filename = scan_meta[line]['Filename'][0][0:10]+'.cxi'
@@ -150,7 +158,6 @@ def create_cxi(dir):
 			f.create_dataset('cxi_version', data = 150)
 			
 			num_images = len(scan_meta[line]['Filename']) 
-			tiff = np.ndarray(shape = (num_images,619,487), dtype = float)
 			translations = np.ndarray(shape = (num_images,3), dtype = float)
 
 			#Populate .cxi file with groups and datasets
@@ -205,7 +212,7 @@ def create_cxi(dir):
 			#image data is stored here
 
 			length = len(scan_data)
-			data = detector_1.create_dataset('data', data = scan_data[line], chunks = (1,619,487)) #Image stack with size tiffxlayers
+			data = detector_1.create_dataset('data', data = scan_data[line], chunks = (1,619,487)) #Image stack with size tifxlayers
 			data.attrs['Axes'] = "translation:y:x" 
 			data_1['data'] = h5py.SoftLink('/entry_1/instrument_1/detector_1/data')
 
