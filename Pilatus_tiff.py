@@ -91,7 +91,7 @@ def create_master(dir, overwrite = False):
 
 	with cd(dir):
 		line_file = list(sorted(set([filename for filename in os.listdir(dir) if filename.endswith('.cxi') and filename.startswith('fly')])))
-		m = h5py.File('master.cxi', mode)
+		m = h5py.File(line_file[0][0:6] + '.cxi', mode)
 
 		e = True
 		i = 0
