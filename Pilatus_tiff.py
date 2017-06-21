@@ -90,8 +90,9 @@ def create_master(dir, overwrite = False):
 		mode = 'w'
 
 	with cd(dir):
-		line_file = list(sorted(set([filename for filename in os.listdir(dir) if filename.endswith('.cxi') and filename.startswith('fly')])))
-		m = h5py.File(line_file[0][0:6] + '.cxi', mode)
+		line_file = list(sorted(set([filename for filename in os.listdir(dir) if filename.endswith('.cxi') and filename.startswith('fly') and not filename.endswith('master.cxi')])))
+		print(line_file)
+		m = h5py.File( line_file[0][0:6] + '_master.cxi', mode)
 
 		e = True
 		i = 0
