@@ -91,7 +91,6 @@ def create_master(dir, overwrite = False):
 
 	with cd(dir):
 		line_file = list(sorted(set([filename for filename in os.listdir(dir) if filename.endswith('.cxi') and filename.startswith('fly') and not filename.endswith('master.cxi')])))
-		print(line_file)
 		m = h5py.File( line_file[0][0:6] + '_master.cxi', mode)
 
 		e = True
@@ -124,8 +123,8 @@ def create_master(dir, overwrite = False):
 		
 		entry_m['start_time'] = h5py.ExternalLink(line_file[0], '/entry_1/start_time')
 		dt = h5py.special_dtype(vlen=unicode)
-		entry_m.create_dataset('experiment_description', dtype = dt)
-		entry_m.create_dataset('experiment_identifier', dtype = dt)
+		entry_m.create_dataset('experiment_description', (1,), dtype = dt)
+		entry_m.create_dataset('experiment_identifier', (1,),  dtype = dt)
 		
 		#Populate groups with each lines data and metadata
 		for i in range(len(line_file)):
@@ -165,8 +164,8 @@ def create_cxi(dir):
 			entry_1 = f.create_group('entry_1')
 			entry_1.create_dataset('start_time', data = scan_meta[line]['Date_Time'][0])
 			dt = h5py.special_dtype(vlen=unicode)
-			entry_1.create_dataset('experiment_description', dtype = dt)
-			entry_1.create_dataset('experiment_identifier', dtype = dt)
+			entry_1.create_dataset('experiment_description', (1,), dtype = dt)
+			entry_1.create_dataset('experiment_identifier', (1,), dtype = dt)
 		
 			sample_1 = entry_1.create_group('sample_1')
 			geometry_1 = sample_1.create_group('geometry_1')
