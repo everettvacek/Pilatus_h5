@@ -40,14 +40,6 @@ def metadata_keys(detector):
 		('Angle_increment', []), ( 'Polarization', []),( 'Alpha', []), ( 'Kappa', []), ( 'Phi',  []), ( 'Phi_increment',  []), ( 'Chi', []),
 		('Chi_increment', []), ( 'Oscillation_axis', []), ( 'N_oscillations',  [])
 		])
-#		('Filename', []), 'Date_Time':[], 'Pixel_size': [], 'Silicon sensor, thickness' : [], 'Exposure_time': [], 'Exposure_period': [],
-#		'Tau' : [], 'Count_cutoff': [], 'Threshold_setting:': [], 'Gain_setting:' : [], 'N_excluded_pixels' : [], 
-#		'Excluded_pixels:' : [], 'Flat_field:' : [], 'Trim_file:' : [], 'Image_path:': [], 'Ratecorr_lut_directory:' : [], 
-#		'Retrigger_mode:': [], 'Wavelength': [], 'Energy_range': [], 'Detector_distance': [], 'Detector_Voffset': [],
-#		'Detector_Voffset': [], 'Beam_xy': [], 'Flux': [], 'Filter_transmission' : [], 'Start_angle': [], 'Detector_2theta' : [],
-#		'Angle_increment': [], 'Polarization' : [], 'Alpha' : [], 'Kappa' : [], 'Phi' : [], 'Phi_increment' : [], 'Chi' : [],
-#		'Chi_increment' : [], 'Oscillation_axis' : [], 'N_oscillations' : []
-	
 
 	return metadata_keys
 def sort_by_filename(scan_meta):
@@ -64,7 +56,9 @@ def sort_by_filename(scan_meta):
 
 
 def parse_filename(filename_format, filenames):
-
+	'''
+	NEED TO ADD FEATURE TO IDENTIFY AND REMOVE FILE EXTENSIONS 
+	'''
 	#define empty lists to store parced filename components
 	scan, line, image = [], [], []
 	if filename_format == 'Pilatus 100k' or 'Pilatus 300k':
