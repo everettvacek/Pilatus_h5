@@ -10,39 +10,83 @@ i.e. flydataset_line_image.tif
 import os
 import tifffile as tf
 import h5py
-
-__all__ = [ 'collect_tif_meta', 'collect_tif_data', 'create_master', 'create_cxi']
+from collections import OrderedDict
+__all__ = [ 'collect_tif_meta', 'collect_tif_data', 'create_master', 'create_cxi', 'metadata_keys', 'parse_filename']
 
 class cd:
-    """Context manager for changing the current working directory"""
+#    """Context manager for changing the current working directory"""
+	def __init__(self, newPath):
+        	self.newPath = os.path.expanduser(newPath)
+	def __enter__(self):
+		self.savedPath = os.getcwd()
+		os.chdir(self.newPath)
+	def __exit__(self, etype, value, traceback):
+		os.chdir(self.savedPath)
+
+
+def metadata_keys(detector):
+	'''
+	dictionary of metadata keys for each detector
+	Detector: Name of detector being used. This will specify how headers, filenames and other important metadata is handled
+	Detector options: Pilatus 100k, Pilatus 300k
+	'''
+	if detector == 'Pilatus 100k':
+		metadata_keys = OrderedDict([
+		('Filename', []), ( 'Date_Time',[]), ( 'Pixel_size', []), ( 'Silicon sensor, thickness' , []), ( 'Exposure_time', []), ( 'Exposure_period', []),
+		('Tau' , []), ( 'Count_cutoff', []), ( 'Threshold_setting:', []), ( 'Gain_setting:' , []), ( 'N_excluded_pixels' , []),
+		('Excluded_pixels:' , []), ( 'Flat_field:' , []), ( 'Trim_file:' , []), ( 'Image_path:', []), ( 'Ratecorr_lut_directory:' , []),
+		('Retrigger_mode:', []), ( 'Wavelength', []), ( 'Energy_range', []), ( 'Detector_distance', []), ( 'Detector_Voffset', []),
+		('Detector_Voffset', []), ( 'Beam_xy', []), ( 'Flux', []), ( 'Filter_transmission', []), ( 'Start_angle', []), ( 'Detector_2theta', []),
+		('Angle_increment', []), ( 'Polarization', []),( 'Alpha', []), ( 'Kappa', []), ( 'Phi',  []), ( 'Phi_increment',  []), ( 'Chi', []),
+		('Chi_increment', []), ( 'Oscillation_axis', []), ( 'N_oscillations',  [])
+		])
+#		('Filename', []), 'Date_Time':[], 'Pixel_size': [], 'Silicon sensor, thickness' : [], 'Exposure_time': [], 'Exposure_period': [],
+#		'Tau' : [], 'Count_cutoff': [], 'Threshold_setting:': [], 'Gain_setting:' : [], 'N_excluded_pixels' : [], 
+#		'Excluded_pixels:' : [], 'Flat_field:' : [], 'Trim_file:' : [], 'Image_path:': [], 'Ratecorr_lut_directory:' : [], 
+#		'Retrigger_mode:': [], 'Wavelength': [], 'Energy_range': [], 'Detector_distance': [], 'Detector_Voffset': [],
+#		'Detector_Voffset': [], 'Beam_xy': [], 'Flux': [], 'Filter_transmission' : [], 'Start_angle': [], 'Detector_2theta' : [],
+#		'Angle_increment': [], 'Polarization' : [], 'Alpha' : [], 'Kappa' : [], 'Phi' : [], 'Phi_increment' : [], 'Chi' : [],
+#		'Chi_increment' : [], 'Oscillation_axis' : [], 'N_oscillations' : []
 	
-    def __init__(self, newPath):
-        self.newPath = os.path.expanduser(newPath)
 
-    def __enter__(self):
-        self.savedPath = os.getcwd()
-        os.chdir(self.newPath)
+	return metadata_keys
+def sort_by_filename(scan_meta):
+	
+	#zip the scan_meta values
+	zipped_values = zip(*scan_meta.values())
+	#sort them according to the filename then unzip
+	unzipped_values = zip(*sorted(zipped_values, key = lambda index: index[0]))
+	#store sorted values in dict
+	key = iter(scan_meta)
+	for i in range(len(scan_meta)):
+		scan_meta[key.next()] = unzipped_values[i]
+	return scan_meta
 
-    def __exit__(self, etype, value, traceback):
-        os.chdir(self.savedPath)
+
+def parse_filename(filename_format, filenames):
+
+	#define empty lists to store parced filename components
+	scan, line, image = [], [], []
+	if filename_format == 'Pilatus 100k' or 'Pilatus 300k':
+		for i in range(len(filenames)):
+			parced = list(x.split('_') for x in filenames)[i]
+			if len(parced) == 3:
+				scan[len(scan):], line[len(line):], image[len(image):] = [parced[0]], [parced[1]], [parced[2]]
+			elif len(parced) == 2:
+				scan[len(scan):], line[len(line):] = [parced[0]], [parced[1]]
+		if image == []:
+			a = OrderedDict([('scan', scan), ('line', line)])
+		else:   
+			a = OrderedDict([('scan', scan), ('line', line), ('image', image)])
+	return a
 
 
 def collect_tif_meta(line):
 	"""Collects tif metadata and loads it into a python dictionary"""
 
-	#create dictionary
-	scan_meta = {}
-
 	#create sub-dictionary for each scanline
-	important_meta = {
-	'Filename': [], 'Date_Time':[], 'Pixel_size': [], 'Silicon sensor, thickness' : [], 'Exposure_time': [], 'Exposure_period': [],
-	'Tau' : [], 'Count_cutoff': [], 'Threshold_setting:': [], 'Gain_setting:' : [], 'N_excluded_pixels' : [], 
-	'Excluded_pixels:' : [], 'Flat_field:' : [], 'Trim_file:' : [], 'Image_path:': [], 'Ratecorr_lut_directory:' : [], 
-	'Retrigger_mode:': [], 'Wavelength': [], 'Energy_range': [], 'Detector_distance': [], 'Detector_Voffset': [],
-	'Detector_Voffset': [], 'Beam_xy': [], 'Flux': [], 'Filter_transmission' : [], 'Start_angle': [], 'Detector_2theta' : [],
-	'Angle_increment': [], 'Polarization' : [], 'Alpha' : [], 'Kappa' : [], 'Phi' : [], 'Phi_increment' : [], 'Chi' : [],
-	'Chi_increment' : [], 'Oscillation_axis' : [], 'N_oscillations' : []
-	}
+	scan_meta = metadata_keys('Pilatus 100k')                                       #change to ask for detector
+
 	for filename in os.listdir(os.getcwd()):
 		if filename.endswith(".tif") and filename.startswith(line,7):
 			name = os.path.splitext(filename)[0]
@@ -55,34 +99,33 @@ def collect_tif_meta(line):
 			data = file.read()
 			
 			#store data in dictionary
-			important_meta['Filename'].append(name)
-			important_meta['Date_Time'].append(data[30:34] + '-' + data[35:37] + '-' + data[38:40] + 'T' + data[41:49]+'-0600')
-			for key in important_meta:
+			scan_meta['Filename'].append(name)
+			scan_meta['Date_Time'].append(data[30:34] + '-' + data[35:37] + '-' + data[38:40] + 'T' + data[41:49]+'-0600')
+			for key in scan_meta:
 				if key == 'Filename' or key == 'Date_Time':
 					pass
 				else:
 					start = data.find(key)+len(key)+1
 					end = data.find('\r\n', start)
-					important_meta[key].append(data[start:end])
-	scan_meta[line] = important_meta
-	return scan_meta
+					scan_meta[key].append(data[start:end])
+	return sort_by_filename(scan_meta)
 
 def collect_tif_data(line):
 	"""Collects tif data and loads it into python dictionary"""
 	import numpy as np
 
-	scan_data = {}
+	scan_data = OrderedDict([])
 	data_array = []
 	for filename in os.listdir(os.getcwd()):
 		if filename.endswith(".tif") and filename.startswith(line, 7):
 			name = os.path.splitext(filename)[0]
 			data_array.append(tf.imread(filename))
-	scan_data[line] = np.asarray(data_array, order = 'C')
+	scan_data = np.asarray(data_array, order = 'C')
 	return scan_data
 
 
-def create_master(dir, overwrite = False):
-	"""Creates master file with external links to each line.cxi file"""
+def create_line_h5(dir, overwrite = False):
+	"""Creates HDF5 file for each line of data"""
 
 
 	mode = 'a'
@@ -90,9 +133,32 @@ def create_master(dir, overwrite = False):
 		mode = 'w'
 
 	with cd(dir):
-		line_file = list(sorted(set([filename for filename in os.listdir(dir) if filename.endswith('.cxi') and filename.startswith('fly') and not filename.endswith('master.cxi')])))
-		m = h5py.File( line_file[0][0:6] + '_master.cxi', mode)
+		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif') and filename.startswith('fly')])))
+#		line_file = list(sorted(set([filename for filename in os.listdir(dir) if filename.endswith('.cxi') and filename.startswith('fly') and not filename.endswith('master.cxi')])))
+#		m = h5py.File( scan_line[0][0:6] + '_master.cxi', mode)
 
+
+		#Populate groups with each lines data and metadata
+		for line in scan_line:
+			scan_meta = collect_tif_meta(line)
+			scan_data = collect_tif_data(line)
+			#line = line_file[i][7:10]
+			
+			sort_key = range(len(scan_meta['Filename']))
+			sort_key.sort(key = scan_meta['Filename'].__getitem__)
+			for key in scan_meta:
+				scan_meta[key] = map(scan_meta[key].__getitem__, sort_key)
+#				scan_data[key] = map(
+			filename = scan_meta['Filename'][0][0:10]+'.h5'
+			f = h5py.File(filename, 'w')
+			data = f.create_dataset(u'data/' + unicode(line),data = scan_data) #h5py.ExternalLink(line_file[i], '/entry_1/instrument_1/detector_1/data')
+
+			data.attrs['Axes'] = "translation:y:x" 
+			metadata = f.create_group( 'metadata') #[u'metadata/' + unicode(line)] =  scan_meta #h5py.ExternalLink(line_file[i], '/entry_1/image_1/process_1/note_1/metadata')
+			for key in scan_meta:
+				metadata.create_dataset( key, data = scan_meta[key])
+			f.close()		 
+'''
 		e = True
 		i = 0
 		#Create new entry
@@ -125,67 +191,76 @@ def create_master(dir, overwrite = False):
 		dt = h5py.special_dtype(vlen=unicode)
 		entry_m.create_dataset('experiment_description', (1,), dtype = dt)
 		entry_m.create_dataset('experiment_identifier', (1,),  dtype = dt)
-		
-		#Populate groups with each lines data and metadata
-		for i in range(len(line_file)):
-			line = line_file[i][7:10]
-			m[data_m.name + u'/' + unicode(line)] = h5py.ExternalLink(line_file[i], '/entry_1/instrument_1/detector_1/data')
-			m[metadata_m.name + u'/' + unicode(line)] =  h5py.ExternalLink(line_file[i], '/entry_1/image_1/process_1/note_1/metadata')
-
-		m.close()		 
+'''		
 
 
-def create_cxi(dir):
-	'''Creates .cxi file for each scanline in a directory'''
+
+#def extract_cxi_data()
+
+def create_master(dir):
+	'''Creates master file in .cxi format from the line files'''
 	import numpy as np
 	
 	with cd(dir):
 		#Create sorted list of scan line strings	
-		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif') and filename.startswith('fly')])))
+#		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif') and filename.startswith('fly')])))
+
+		scan_file = list(sorted(set([filename for filename in os.listdir(dir) if filename.endswith('.h5') and filename.startswith('fly') and not filename.endswith('master.cxi')])))
 		
+		split_scan_file = []
+		for i in range(len(scan_file)):
+			split_scan_file.append( os.path.splitext(scan_file[i])[0])
+		print(scan_file)
+		scan_filename = parse_filename('Pilatus 100k', split_scan_file)
+		print(scan_filename)
 		#Create .cxi file for each scan line in the list
-		index = 0	
-		for line in scan_line:
-			index = index + 1
+		i = 0	
+		
+		filename = scan_filename['scan'][0]+'_master.cxi'
+		f = h5py.File(filename ,'w')
+		f.create_dataset('cxi_version', data = 150)
+
+		for line in scan_filename['line']:
 
 			# Collect tif data and metadata
-			scan_meta = collect_tif_meta(line)
-			scan_data = collect_tif_data(line)
+#			scan_meta = collect_tif_meta(line)
+#			scan_data = collect_tif_data(line)
 
 			#Create .cxi file 
-			filename = scan_meta[line]['Filename'][0][0:10]+'.cxi'
-			f = h5py.File(filename ,'w')
-			f.create_dataset('cxi_version', data = 150)
+			h5_file = h5py.File(scan_file[i], 'r')
+			print(scan_file[i])
+			h5_data = h5_file['/data']
+			h5_meta = h5_file['/metadata']
 			
-			num_images = len(scan_meta[line]['Filename']) 
+			num_images = len(h5_meta['Filename']) 
 			translations = np.ndarray(shape = (num_images,3), dtype = float)
 
 			#Populate .cxi file with groups and datasets
-			entry_1 = f.create_group('entry_1')
-			entry_1.create_dataset('start_time', data = scan_meta[line]['Date_Time'][0])
+			entry_1 = f.create_group('entry_'+str(i))
+			entry_1['start_time'] = h5py.ExternalLink(scan_file[i],'/metadata/Date_Time')
 			dt = h5py.special_dtype(vlen=unicode)
 			entry_1.create_dataset('experiment_description', (1,), dtype = dt)
 			entry_1.create_dataset('experiment_identifier', (1,), dtype = dt)
 		
 			sample_1 = entry_1.create_group('sample_1')
 			geometry_1 = sample_1.create_group('geometry_1')
-			geometry_1.create_dataset('beam_xy', data = scan_meta[line]['Beam_xy'])
+			geometry_1['beam_xy'] = h5py.ExternalLink(scan_file[i],'/metadata/Beam_xy')
 
 			image_1 = entry_1.create_group('image_1')
 
 			process_1 = image_1.create_group('process_1')
-			process_1.create_dataset('date', data = scan_meta[line]['Date_Time'][0])
+			process_1['date'] = h5py.ExternalLink(scan_file[i],'/metadata/Date_Time')
 			note_1 = process_1.create_group('note_1')
 			folder = note_1.create_group('metadata')
-			for key in scan_meta[line]:
-				folder.create_dataset( key, data = scan_meta[line][key])
+#			for key in scan_meta:
+#				folder.create_dataset( key, data = scan_meta[key])
 
 
 			translation = geometry_1.create_dataset('translation', data = translations) #256x3 array of translations (m)
 			translation.attrs['Units'] = 'meters'
-			geometry_1.create_dataset('angle_increment', data = scan_meta[line]['Angle_increment'])
+			geometry_1['angle_increment'] = h5py.ExternalLink(scan_file[i],'/metadata/Angle_increment')
 
-			geometry_1.create_dataset('start_angle_' + line, data = scan_meta[line]['Start_angle'])
+			geometry_1['start_angle_'+ line] = h5py.ExternalLink(scan_file[i],'/metadata/Start_angle')
 
 			data_1 = entry_1.create_group('data_1')
 			data_1["translation"] = h5py.SoftLink(translation.name)
@@ -193,33 +268,35 @@ def create_cxi(dir):
 			instrument_1 = entry_1.create_group('instrument_1')
 
 			source_1 = instrument_1.create_group('source_1')
-			source_1.create_dataset('flux', data = scan_meta[line]['Flux'])
+			source_1['flux'] = h5py.ExternalLink(scan_file[i], '/metadata/Flux')
 
 			attenuator_1 = instrument_1.create_group('attenuator_1')
-			attenuator_1.create_dataset('filter_transmission', data = scan_meta[line]['Filter_transmission'])
+			attenuator_1['filter_transmission'] = h5py.ExternalLink(scan_file[i], 'Filter_transmission')
 
-			source_1.create_dataset('incident_energy_range', data = scan_meta[line]['Energy_range'])
-			source_1.create_dataset('incident_wavelength', data = scan_meta[line]['Wavelength'])
-			source_1.create_dataset('incident_polarization', data = scan_meta[line]['Polarization'])
+			source_1['incident_energy_range'] = h5py.ExternalLink(scan_file[i], '/metadata/Energy_range')
+			source_1['incident_wavelength'] = h5py.ExternalLink(scan_file[i], '/metadata/Wavelength')
+			source_1['incident_polarization'] = h5py.ExternalLink(scan_file[i], '/metadata/Polarization')
 			detector_1 = instrument_1.create_group('detector_1')
 			detector_1.create_dataset('description', data = 'Pilatus3')
 			detector_1['translation'] = h5py.SoftLink(translation.name)
-			detector_1.create_dataset('distance', data = scan_meta[line]['Detector_distance'])
-			detector_1.create_dataset('count_cutoff', data = scan_meta[line]['Count_cutoff'])
-			detector_1.create_dataset('gain_setting', data = scan_meta[line]['Gain_setting:'])
-			detector_1.create_dataset('v_offset', data = scan_meta[line]['Detector_Voffset'])
+			detector_1['distance'] = h5py.ExternalLink(scan_file[i], '/metadata/Detector_distance')
+			detector_1['count_cutoff'] = h5py.ExternalLink(scan_file[i], '/metadata/Count_cutoff')
+			detector_1['gain_setting'] = h5py.ExternalLink(scan_file[i], '/metadata/Gain_setting:')
+			detector_1['v_offset'] = h5py.ExternalLink(scan_file[i], '/metadata/Detector_Voffset')
 
 			#image data is stored here
 
-			length = len(scan_data)
-			data = detector_1.create_dataset('data', data = scan_data[line], chunks = (1,619,487)) #Image stack with size tifxlayers
-			data.attrs['Axes'] = "translation:y:x" 
-			data_1['data'] = h5py.SoftLink('/entry_1/instrument_1/detector_1/data')
+#			length = len(h5_data['/'+line])
+			detector_1['data'] = h5py.ExternalLink(scan_file[i], '/data/')  #Image stack with size tifxlayers
+#			detector_1['data'].attrs['Axes'] = "translation:y:x" 
+			data_1[line] = h5py.SoftLink('/entry_' + str(i) + '/instrument_1/detector_1/data/' + line)
 
 			log_1 = detector_1.create_group('log')
-			log_1.create_dataset('retrigger_mode', data = [int(i) for i in scan_meta[line]['Retrigger_mode:']])
-			log_1.create_dataset('exposure_time', data = scan_meta[line]['Exposure_time'])
-			log_1.create_dataset('exposure_period', data = scan_meta[line]['Exposure_period'])
+#			log_1.create_dataset('retrigger_mode', data = [int(i) for i in scan_meta['Retrigger_mode:']])
+#			log_1.create_dataset('exposure_time', data = scan_meta['Exposure_time'])
+#			log_1.create_dataset('exposure_period', data = scan_meta['Exposure_period'])
 
 
-			f.close()
+			i = i+1
+			h5_file.close()
+	f.close()
