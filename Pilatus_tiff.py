@@ -4,7 +4,6 @@ All files must be in the format fly###_###_#####.tif where the first set of  num
 the second set of numbers represent the scanline (001-999), and the third set of numbers represents the image number (00000-99999)
 i.e. flydataset_line_image.tif
 
-
 """
 
 import os
@@ -55,15 +54,17 @@ def sort_by_filename(scan_meta):
 	return scan_meta
 
 
-def parse_filename(filename_format, filenames):
+def parse_filename(filename_format, filename):
 	'''
 	NEED TO ADD FEATURE TO IDENTIFY AND REMOVE FILE EXTENSIONS 
 	'''
 	#define empty lists to store parced filename components
+	
 	scan, line, image = [], [], []
 	if filename_format == 'Pilatus 100k' or 'Pilatus 300k':
-		for i in range(len(filenames)):
-			parced = list(x.split('_') for x in filenames)[i]
+		name_ext = list(os.path.splitext(x)[0] for x in filename)
+		for i in range(len(filename)):
+			parced = list(x.split('_') for x in name_ext)[i]
 			if len(parced) == 3:
 				scan[len(scan):], line[len(line):], image[len(image):] = [parced[0]], [parced[1]], [parced[2]]
 			elif len(parced) == 2:
@@ -128,21 +129,16 @@ def create_line_h5(dir, overwrite = False):
 
 	with cd(dir):
 		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif') and filename.startswith('fly')])))
-#		line_file = list(sorted(set([filename for filename in os.listdir(dir) if filename.endswith('.cxi') and filename.startswith('fly') and not filename.endswith('master.cxi')])))
-#		m = h5py.File( scan_line[0][0:6] + '_master.cxi', mode)
-
 
 		#Populate groups with each lines data and metadata
 		for line in scan_line:
 			scan_meta = collect_tif_meta(line)
 			scan_data = collect_tif_data(line)
-			#line = line_file[i][7:10]
 			
 			sort_key = range(len(scan_meta['Filename']))
 			sort_key.sort(key = scan_meta['Filename'].__getitem__)
 			for key in scan_meta:
 				scan_meta[key] = map(scan_meta[key].__getitem__, sort_key)
-#				scan_data[key] = map(
 			filename = scan_meta['Filename'][0][0:10]+'.h5'
 			f = h5py.File(filename, 'w')
 			data = f.create_dataset(u'data/' + unicode(line),data = scan_data) #h5py.ExternalLink(line_file[i], '/entry_1/instrument_1/detector_1/data')
@@ -189,7 +185,6 @@ def create_line_h5(dir, overwrite = False):
 
 
 
-#def extract_cxi_data()
 
 def create_master(dir):
 	'''Creates master file in .cxi format from the line files'''
@@ -197,16 +192,17 @@ def create_master(dir):
 	
 	with cd(dir):
 		#Create sorted list of scan line strings	
-#		scan_line = list(sorted(set([filename[7:10] for filename in os.listdir(dir) if filename.endswith('.tif') and filename.startswith('fly')])))
-
 		scan_file = list(sorted(set([filename for filename in os.listdir(dir) if filename.endswith('.h5') and filename.startswith('fly') and not filename.endswith('master.cxi')])))
 		
+		'''
+		---------------------MOVE TO PARSE_FILENAME()----------------------
 		split_scan_file = []
 		for i in range(len(scan_file)):
 			split_scan_file.append( os.path.splitext(scan_file[i])[0])
-		print(scan_file)
-		scan_filename = parse_filename('Pilatus 100k', split_scan_file)
-		print(scan_filename)
+
+		---------------------MOVE TO PARSE_FILENAME()----------------------
+		'''
+		scan_filename = parse_filename('Pilatus 100k', scan_file)
 		#Create .cxi file for each scan line in the list
 		i = 0	
 		
@@ -215,10 +211,6 @@ def create_master(dir):
 		f.create_dataset('cxi_version', data = 150)
 
 		for line in scan_filename['line']:
-
-			# Collect tif data and metadata
-#			scan_meta = collect_tif_meta(line)
-#			scan_data = collect_tif_data(line)
 
 			#Create .cxi file 
 			h5_file = h5py.File(scan_file[i], 'r')
