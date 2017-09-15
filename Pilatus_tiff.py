@@ -91,7 +91,8 @@ def collect_tif_meta(line):
 			
 			#read auxillary metadata
 			file = open(filename, 'rb')
-			data = file.read()
+			#read enough data to capture header
+			data = file.read(5000)
 			
 			#store data in dictionary
 			scan_meta['Filename'].append(name)
@@ -103,6 +104,7 @@ def collect_tif_meta(line):
 					start = data.find(key)+len(key)+1
 					end = data.find('\r\n', start)
 					scan_meta[key].append(data[start:end])
+			file.close()
 	return sort_by_filename(scan_meta)
 
 def collect_tif_data(line):
