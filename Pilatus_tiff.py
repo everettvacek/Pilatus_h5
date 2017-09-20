@@ -107,6 +107,39 @@ def collect_tif_meta(line):
 			file.close()
 	return sort_by_filename(scan_meta)
 
+def mdatree2ascii(dir, filename = None):
+	import subprocess
+	with cd(dir):
+		if filename == None:
+			filename = [f for f in os.listdir(os.getcwd()) if f.endswith('.mda')]
+			for f in filename:
+				#create directory for extracted ascii files
+				ascii_f = os.path.splitext(f)[0] + '_asc'
+
+				#increment directory name if it already exists
+				if os.path.exists(ascii_f):
+					i = 1
+					while os.path.exists( os.path.splitext(f)[0] + '_asc_%s' % i):
+						i += 1
+					ascii_f = os.path.splitext(f)[0] + '_asc_%s' % i
+
+				ascii_dir = os.getcwd() + '/' + ascii_f
+				os.mkdir(ascii_dir)
+
+				#use mdautils in bash to collect data from mda file
+				bashCommand = ['mdatree2ascii', os.getcwd(), ascii_dir]
+				subprocess.call(bashCommand)
+					
+		else:
+			for f in filename:
+				#create directory for extracted ascii files
+				ascii_f = os.path.splitext(f)[0] + '_asc'
+				ascii_dir = os.getcwd() + '/' + ascii_f
+				os.mkdir(ascii_f)
+				#use mdautils in bash to collect data from mda file
+				bashCommand = ['mdatree2ascii', os.getcwd(), ascii_dir]
+				subprocess.call(bashCommand)
+			
 def collect_tif_data(line):
 	"""Collects tif data and loads it into python dictionary"""
 	import numpy as np
