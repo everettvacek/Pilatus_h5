@@ -10,7 +10,7 @@ import os
 import tifffile as tf
 import h5py
 from collections import OrderedDict
-__all__ = [ 'collect_tif_meta', 'collect_tif_data', 'create_master', 'create_cxi', 'metadata_keys', 'parse_filename']
+__all__ = [ 'collect_tif_meta', 'collect_tif_data', 'create_master', 'create_cxi', 'metadata_keys', 'parse_filename', 'mdatree2ascii']
 
 class cd:
 #    """Context manager for changing the current working directory"""
@@ -108,6 +108,11 @@ def collect_tif_meta(line):
 	return sort_by_filename(scan_meta)
 
 def mdatree2ascii(dir, filename = None):
+	"""
+	Requires mdautils from https://www3.aps.anl.gov/bcda/mdautils/index.html installation directions are there
+	dir: directory containing the MDA file(s).
+	filename: MDA file to be extracted. Default None will open all mda files in directory.
+	"""
 	import subprocess
 	with cd(dir):
 		if filename == None:
@@ -124,11 +129,7 @@ def mdatree2ascii(dir, filename = None):
 					ascii_f = os.path.splitext(f)[0] + '_asc_%s' % i
 
 				ascii_dir = os.getcwd() + '/' + ascii_f
-				os.mkdir(ascii_dir)
-
-				#use mdautils in bash to collect data from mda file
-				bashCommand = ['mdatree2ascii', os.getcwd(), ascii_dir]
-				subprocess.call(bashCommand)
+				os.mkdir(ascii_f)
 					
 		else:
 			for f in filename:
@@ -136,9 +137,10 @@ def mdatree2ascii(dir, filename = None):
 				ascii_f = os.path.splitext(f)[0] + '_asc'
 				ascii_dir = os.getcwd() + '/' + ascii_f
 				os.mkdir(ascii_f)
-				#use mdautils in bash to collect data from mda file
-				bashCommand = ['mdatree2ascii', os.getcwd(), ascii_dir]
-				subprocess.call(bashCommand)
+		
+		#use mdautils in bash to collect data from mda file
+		bashCommand = ['mdatree2ascii', os.getcwd(), ascii_dir]
+		subprocess.call(bashCommand)
 			
 def collect_tif_data(line):
 	"""Collects tif data and loads it into python dictionary"""
