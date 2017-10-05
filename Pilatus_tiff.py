@@ -10,7 +10,8 @@ import os
 import tifffile as tf
 import h5py
 from collections import OrderedDict
-__all__ = [ 'collect_tif_meta', 'collect_tif_data', 'create_master', 'create_cxi', 'metadata_keys', 'parse_filename', 'mdatree2ascii']
+
+__all__ = [ 'collect_tif_meta', 'collect_tif_data', 'create_master', 'create_cxi', 'metadata_keys', 'mdatree2ascii']
 
 class cd:
 #    """Context manager for changing the current working directory"""
@@ -31,13 +32,13 @@ def metadata_keys(detector):
 	'''
 	if detector == 'Pilatus 100k':
 		metadata_keys = OrderedDict([
-		('Filename', []), ( 'Date_Time',[]), ( 'Pixel_size', []), ( 'Silicon sensor, thickness' , []), ( 'Exposure_time', []), ( 'Exposure_period', []),
-		('Tau' , []), ( 'Count_cutoff', []), ( 'Threshold_setting:', []), ( 'Gain_setting:' , []), ( 'N_excluded_pixels' , []),
-		('Excluded_pixels:' , []), ( 'Flat_field:' , []), ( 'Trim_file:' , []), ( 'Image_path:', []), ( 'Ratecorr_lut_directory:' , []),
-		('Retrigger_mode:', []), ( 'Wavelength', []), ( 'Energy_range', []), ( 'Detector_distance', []), ( 'Detector_Voffset', []),
-		('Detector_Voffset', []), ( 'Beam_xy', []), ( 'Flux', []), ( 'Filter_transmission', []), ( 'Start_angle', []), ( 'Detector_2theta', []),
-		('Angle_increment', []), ( 'Polarization', []),( 'Alpha', []), ( 'Kappa', []), ( 'Phi',  []), ( 'Phi_increment',  []), ( 'Chi', []),
-		('Chi_increment', []), ( 'Oscillation_axis', []), ( 'N_oscillations',  [])
+		('Filename', []), ('Date_Time',[]), ('Pixel_size', []), ('Silicon sensor, thickness' , []), ('Exposure_time', []), ('Exposure_period', []),
+		('Tau' , []), ('Count_cutoff', []), ('Threshold_setting:', []), ('Gain_setting:' , []), ('N_excluded_pixels' , []),
+		('Excluded_pixels:' , []), ('Flat_field:' , []), ('Trim_file:' , []), ('Image_path:', []), ('Ratecorr_lut_directory:' , []),
+		('Retrigger_mode:', []), ('Wavelength', []), ('Energy_range', []), ('Detector_distance', []), ('Detector_Voffset', []),
+		('Detector_Voffset', []), ('Beam_xy', []), ('Flux', []), ('Filter_transmission', []), ('Start_angle', []), ('Detector_2theta', []),
+		('Angle_increment', []), ('Polarization', []),('Alpha', []), ('Kappa', []), ('Phi',  []), ('Phi_increment',  []), ('Chi', []),
+		('Chi_increment', []), ('Oscillation_axis', []), ('N_oscillations',  [])
 		])
 
 	return metadata_keys
@@ -54,7 +55,7 @@ def sort_by_filename(scan_meta):
 	return scan_meta
 
 
-def parse_filename(filename_format, filename):
+def parse_filename(filename_format, filenames):
 	'''
 	NEED TO ADD FEATURE TO IDENTIFY AND REMOVE FILE EXTENSIONS 
 	'''
@@ -62,8 +63,8 @@ def parse_filename(filename_format, filename):
 	
 	scan, line, image = [], [], []
 	if filename_format == 'Pilatus 100k' or 'Pilatus 300k':
-		name_ext = list(os.path.splitext(x)[0] for x in filename)
-		for i in range(len(filename)):
+		name_ext = list(os.path.splitext(x)[0] for x in filenames)
+		for i in range(len(filenames)):
 			parced = list(x.split('_') for x in name_ext)[i]
 			if len(parced) == 3:
 				scan[len(scan):], line[len(line):], image[len(image):] = [parced[0]], [parced[1]], [parced[2]]
@@ -73,6 +74,13 @@ def parse_filename(filename_format, filename):
 			a = OrderedDict([('scan', scan), ('line', line)])
 		else:   
 			a = OrderedDict([('scan', scan), ('line', line), ('image', image)])
+	elif filename_format == 'MDA_ASCII'
+		name_ext = list(os.path.splitext(x)[0] for x in filenames)
+		for i in range(len(filenames)):
+			parced = list(x.split('_') for x in name_ext)[i]
+			if len(parced) == 3:
+				scan[len(scan):], line[len(line):], image[len(image):] = [parced[0]], [parced[1]], [parced[2]]
+		a = OrderedDict([('scan', scan), ('line', line)])
 	return a
 
 
@@ -85,9 +93,6 @@ def collect_tif_meta(line):
 	for filename in os.listdir(os.getcwd()):
 		if filename.endswith(".tif") and filename.startswith(line,7):
 			name = os.path.splitext(filename)[0]
-			
-			#get image structure information 
-			image = tf.imread(filename)
 			
 			#read auxillary metadata
 			file = open(filename, 'rb')
@@ -141,6 +146,43 @@ def mdatree2ascii(dir, filename = None):
 		#use mdautils in bash to collect data from mda file
 		bashCommand = ['mdatree2ascii', os.getcwd(), ascii_dir]
 		subprocess.call(bashCommand)
+
+
+def parse_asc(dir, filename = None):
+	"""
+	Parse ascii files created by mdatree2ascii. Returns dictionary of elements
+	"""
+	with cd(dir):
+
+#		if filename == None:
+#			filename = [f for f in os.listdir(os.getcwd()) if f.endswith('.mda')]
+#			parsed_f = parse_filename('MDA_ASCII', filename) 
+		
+		Extra_PV = OrderedDict([])
+		#collect keys
+		
+		file = open(filename, 'rb')
+		#read enough data to capture header
+		data = file.read()
+		
+		Extra_PV_start = data.find('Extra PV')
+		Extra_PV_end = data.find('\n\n\n', Extra_PV_start)
+		
+		
+		start = data.find(key)+len(key)+1
+		end = data.find('\r\n', start)
+		scan_meta[key].append(data[start:end])
+		#collect scan_line data
+
+		
+		2D_Scan_Point = OrderDict([('Current point', ), ('Scanner', ), ('Scan time', ), ('Colum Descriptions', Colum_Descriptions)])
+		
+
+
+		MDA_keys = OrderedDict([
+			('mda2ascii version', []), ('MDA File Version', []), ('Scan number', []), ('Overall scan dimension', []), ('Extra PV', Extra_PV), ('2-D Scan Point', 2D_Scan_Point) 
+		#collect master data
+	
 			
 def collect_tif_data(line):
 	"""Collects tif data and loads it into python dictionary"""
