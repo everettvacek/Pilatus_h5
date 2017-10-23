@@ -74,6 +74,7 @@ def parse_filename(filename_format, filenames):
 			a = OrderedDict([('scan', scan), ('line', line)])
 		else:   
 			a = OrderedDict([('scan', scan), ('line', line), ('image', image)])
+	'''
 	elif filename_format == 'MDA_ASCII'
 		name_ext = list(os.path.splitext(x)[0] for x in filenames)
 		for i in range(len(filenames)):
@@ -81,6 +82,7 @@ def parse_filename(filename_format, filenames):
 			if len(parced) == 3:
 				scan[len(scan):], line[len(line):], image[len(image):] = [parced[0]], [parced[1]], [parced[2]]
 		a = OrderedDict([('scan', scan), ('line', line)])
+	'''
 	return a
 
 
@@ -147,7 +149,7 @@ def mdatree2ascii(dir, filename = None):
 		bashCommand = ['mdatree2ascii', os.getcwd(), ascii_dir]
 		subprocess.call(bashCommand)
 
-
+'''
 def parse_asc(dir, filename = None):
 	"""
 	Parse ascii files created by mdatree2ascii. Returns dictionary of elements
@@ -182,7 +184,7 @@ def parse_asc(dir, filename = None):
 		MDA_keys = OrderedDict([
 			('mda2ascii version', []), ('MDA File Version', []), ('Scan number', []), ('Overall scan dimension', []), ('Extra PV', Extra_PV), ('2-D Scan Point', 2D_Scan_Point) 
 		#collect master data
-	
+'''	
 			
 def collect_tif_data(line):
 	"""Collects tif data and loads it into python dictionary"""
@@ -220,7 +222,7 @@ def create_line_h5(dir, overwrite = False):
 				scan_meta[key] = map(scan_meta[key].__getitem__, sort_key)
 			filename = scan_meta['Filename'][0][0:10]+'.h5'
 			f = h5py.File(filename, 'w')
-			data = f.create_dataset(u'data/' + unicode(line),data = scan_data) #h5py.ExternalLink(line_file[i], '/entry_1/instrument_1/detector_1/data')
+			data = f.create_dataset(u'entry/instrument/detector/data', data = scan_data) #h5py.ExternalLink(line_file[i], '/entry_1/instrument_1/detector_1/data')
 
 			data.attrs['Axes'] = "translation:y:x" 
 			metadata = f.create_group( 'metadata') #[u'metadata/' + unicode(line)] =  scan_meta #h5py.ExternalLink(line_file[i], '/entry_1/image_1/process_1/note_1/metadata')
@@ -294,7 +296,7 @@ def create_master(dir):
 			#Create .cxi file 
 			h5_file = h5py.File(scan_file[i], 'r')
 			print(scan_file[i])
-			h5_data = h5_file['/data']
+			h5_data = h5_file['entry/instrument/detector/data']
 			h5_meta = h5_file['/metadata']
 			
 			num_images = len(h5_meta['Filename']) 
