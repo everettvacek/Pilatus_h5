@@ -1,2 +1,0 @@
-Find out where to integrate the alignment.tif file
-Best way to fill translation and orientation arrays
