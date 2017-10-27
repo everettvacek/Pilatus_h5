@@ -96,22 +96,32 @@ def collect_tif_meta(line):
 		if filename.endswith(".tif") and filename.startswith(line,7):
 			name = os.path.splitext(filename)[0]
 			
+			with tf.TiffFile(filename) as tif:
+				image_data = tif.asarray()
+				Pilatus_meta = tif[0].tags['image_description'].value
+				Pilatus_model = tif[0].tags['model'].value
+				datetime = tif[0].tags['datetime'].value
+				image_length = tif[0].tags['image_length'].value
+				image_width = tif[0].tags['image_width'].value
+				bits_per_sample = tif[0].tags['bits_per_sample'].value
+
+			'''
 			#read auxillary metadata
 			file = open(filename, 'rb')
 			#read enough data to capture header
 			data = file.read(5000)
-			
+			'''
 			#store data in dictionary
 			scan_meta['Filename'].append(name)
-			scan_meta['Date_Time'].append(data[30:34] + '-' + data[35:37] + '-' + data[38:40] + 'T' + data[41:49]+'-0600')
+			scan_meta['Date_Time'].append(datetime.replace(':','-',2).replace(' ','T')+'-0600')
+			
 			for key in scan_meta:
 				if key == 'Filename' or key == 'Date_Time':
 					pass
 				else:
-					start = data.find(key)+len(key)+1
-					end = data.find('\r\n', start)
-					scan_meta[key].append(data[start:end])
-			file.close()
+					start = Pilatus_meta.find(key)+len(key)+1
+					end = Pilatus_meta.find('\r\n', start)
+					scan_meta[key].append(Pilatus_meta[start:end])
 	return sort_by_filename(scan_meta)
 
 def mdatree2ascii(dir, filename = None):
